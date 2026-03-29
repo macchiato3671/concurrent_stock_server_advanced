@@ -1,0 +1,16 @@
+# 실행 파일 (컴파일 결과물)
+stockserver
+stockclient
+multiclient
+
+# 오브젝트 파일
+*.o
+
+# 기타 임시 파일
+*.swp
+.DS_Store
+
+# 프로젝트에 대한 정리
+*.txt
+*.odt
+*.docx
