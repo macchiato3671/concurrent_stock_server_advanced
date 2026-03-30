@@ -1,3 +1,4 @@
+# 00_project_overview
 ## 1. 이 프로젝트는 뭘까?
 
 이 프로젝트는 동시 접속 환경에서 여러 클라이언트의 요청을 안전하고 효율적으로 처리하는 concurrent stock server를 구현하고 concurrency model에 따른 차이를 비교 및 분석하는 시스템 프로젝트다.  

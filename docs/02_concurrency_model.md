@@ -1,3 +1,4 @@
+# 02_concurrency_model
 ## 1. 문서 목적
 
 이 문서는 현재 프로젝트에서 고려할 수 있는 concurrency model을 간단히 비교하고 baseline 구현에 어떤 모델이 가장 적합한지 판단하기 위한 근거를 정리한다.

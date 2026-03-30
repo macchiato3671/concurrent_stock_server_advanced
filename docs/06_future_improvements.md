@@ -1,3 +1,4 @@
+# 06_future_improvements
 ## 1. 문서 목적
 
 이 문서는 baseline 이후에 검토할 수 있는 고도화 방향을 정리한다.

@@ -1,3 +1,4 @@
+# 03_baseline_design
 ## 1. baseline 목표
 
 이 baseline의 목표는 안정성, 일관성, 복구 가능성을 가장 단순한 구조로 먼저 확보하는 것이다.

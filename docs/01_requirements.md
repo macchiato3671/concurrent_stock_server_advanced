@@ -1,3 +1,4 @@
+# 01_requirements
 ## 1. 문서 목적
 
 이 문서는 concurrent stock server가 반드시 만족해야 하는 기능 요구사항과 핵심 시스템 성질을 정의한다.
