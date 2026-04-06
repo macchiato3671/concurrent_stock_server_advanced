@@ -12,6 +12,8 @@ multiclient
 
 # 프로젝트에 대한 정리
 *.txt
+!data/
+!data/stock_init.txt
 *.odt
 *.docx
 .obsidian

@@ -1,7 +1,8 @@
 # ADR 001: baseline concurrency model로 pthread 기반 thread pool을 선택
 ## 상태
 
-Accepted
+- Status: Accepted
+- Date: 2026-03-30
 
 ---
 
