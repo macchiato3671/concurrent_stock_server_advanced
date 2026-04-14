@@ -1,0 +1,102 @@
+name: Bug report
+description: 재현 가능한 버그, 오동작, crash, 데이터 불일치 보고
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        같은 문제가 이미 등록되어 있는지 먼저 확인해주세요.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 요약
+      description: 무엇이 잘못되었는지 한두 줄로 적어주세요.
+      placeholder: "예: buy 성공 응답 후 서버 재시작 시 상태가 반영되지 않습니다."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: 문제 유형
+      options:
+        - concurrency
+        - persistence
+        - recovery
+        - protocol
+        - threadpool
+        - test
+        - docs mismatch
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: 현재 동작
+      description: 실제로 어떤 일이 발생했는지 적어주세요.
+      placeholder: "실제 결과를 구체적으로 작성"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: 기대 동작
+      description: 원래 어떤 결과가 나와야 하는지 적어주세요.
+      placeholder: "기대한 결과를 작성"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 재현 절차
+      description: 가능한 한 최소 절차로 적어주세요.
+      placeholder: |
+        1. 서버 실행
+        2. 클라이언트 A/B 동시 요청
+        3. buy 수행
+        4. 서버 종료 후 재시작
+        5. show 결과 확인
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: invariant
+    attributes:
+      label: 영향받는 불변식
+      description: 해당되면 체크해주세요.
+      options:
+        - label: inventory never negative
+        - label: state-changing requests are atomic
+        - label: responses reflect committed state
+        - label: restart recovery reconstructs committed state
+        - label: successful response implies exactly-once durable state
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그 / 에러 메시지
+      description: 관련 로그, assert, stack trace가 있으면 붙여주세요.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 환경
+      description: OS, compiler, 실행 방식 등을 적어주세요.
+      placeholder: |
+        OS:
+        Compiler:
+        Build flags:
+        Run command:
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 추가 정보
+      description: 관련 PR, commit, 스크린샷, 참고사항이 있으면 적어주세요.

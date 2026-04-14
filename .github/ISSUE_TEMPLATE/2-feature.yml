@@ -1,0 +1,65 @@
+name: Feature request
+description: 새 기능 제안 또는 기능 확장 요청
+title: "[FEATURE] "
+labels: ["feature", "needs-triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 배경 / 문제
+      description: 왜 이 기능이 필요한지 적어주세요.
+      placeholder: "현재 어떤 불편이나 한계가 있는가?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 제안 내용
+      description: 원하는 동작을 구체적으로 적어주세요.
+      placeholder: "예: graceful shutdown 시점 외에도 주기적 snapshot을 지원"
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: 범위
+      description: 어디까지 포함하고 어디까지 제외할지 적어주세요.
+      placeholder: |
+        포함:
+        제외:
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 완료 기준
+      description: 이 이슈가 끝났다고 볼 수 있는 조건을 적어주세요.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: 예상 영향 영역
+      multiple: true
+      options:
+        - protocol
+        - stockstore
+        - persistence
+        - recovery
+        - threadpool
+        - docs
+        - tests
+        - performance
+
+  - type: textarea
+    id: risk
+    attributes:
+      label: 우려 사항 / 리스크
+      description: 동시성, durability, 호환성 등 우려되는 점이 있으면 적어주세요.
