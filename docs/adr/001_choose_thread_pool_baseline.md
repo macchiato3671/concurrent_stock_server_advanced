@@ -29,8 +29,8 @@ baseline concurrency model로 `pthread` 기반 thread pool을 사용한다.
 구체적으로는 다음 구조를 사용한다.
 
 - Main Thread가 클라이언트 연결을 accept한다
-- accept된 연결 또는 작업은 bounded queue에 넣는다
-- 여러 worker thread가 queue에서 작업을 가져와 요청을 처리한다
+- accept된 connection(`connfd`)은 bounded queue에 넣는다
+- 여러 worker thread가 queue에서 connection을 가져와 요청을 반복 처리한다
 
 ---
 
@@ -41,7 +41,7 @@ baseline concurrency model로 `pthread` 기반 thread pool을 사용한다.
 - 순차 처리 구조보다 병렬성을 확보할 수 있다
 - thread-per-connection보다 thread 수를 통제하기 쉽다
 - 요청 처리 흐름을 순차 코드처럼 작성하기 쉽다
-- `buy`, `sell`, `show`를 request 단위로 다루기 쉽다
+- `buy`, `sell`, `show`를 connection 안의 request 단위로 다루기 쉽다
 - 전역 상태 저장소 + 전역 mutex 구조와 잘 맞는다
 - snapshot + append-only log 기반 영속화와 복구 구조를 붙이기 쉽다
 - correctness 검증과 디버깅이 비교적 단순하다

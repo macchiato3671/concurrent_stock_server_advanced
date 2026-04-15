@@ -6,7 +6,7 @@
 /*
  * Starts the server lifecycle for the given listen port.
  *
- * This is where the accept loop and worker infrastructure will be attached.
+ * The current baseline uses a bounded queue and a fixed-size worker pool.
  */
 stock_status_t run_server_stub(const char *port);
 
