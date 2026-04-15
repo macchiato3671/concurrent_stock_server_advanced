@@ -6,7 +6,7 @@
 
 #define STOCK_WORKER_COUNT 8
 #define STOCK_QUEUE_SIZE 64
-#define STOCK_QUEUE_STOP -1
+#define STOCK_QUEUE_STOP (-1)
 
 typedef struct {
     int fds[STOCK_QUEUE_SIZE];
@@ -356,11 +356,6 @@ static ssize_t stock_writen(int fd, const void *buf, size_t n)
             if (errno == EINTR) {
                 continue;
             }
-            fprintf(stderr, "client write failed: %s\n", strerror(errno));
-            return -1;
-        }
-        if (nwritten == 0) {
-            errno = EPIPE;
             fprintf(stderr, "client write failed: %s\n", strerror(errno));
             return -1;
         }
