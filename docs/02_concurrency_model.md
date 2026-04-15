@@ -38,7 +38,7 @@
 ### 3.1 `pthread` 기반 Thread Pool
 
 #### 개념
-미리 worker thread를 여러 개 생성해 두고 들어온 연결 또는 요청을 queue에 넣어 worker가 처리하는 방식이다.
+미리 worker thread를 여러 개 생성해 두고 accept된 connection(`connfd`)을 queue에 넣어 worker가 처리하는 방식이다.
 
 #### 장점
 - thread 수를 제어할 수 있어 자원 사용량을 통제하기 쉽다.

@@ -26,13 +26,13 @@ static stock_status_t create_workers(pthread_t *tids, conn_queue_t *queue,
                                      int *created);
 static void join_workers(pthread_t *tids, int count);
 static void stop_workers(conn_queue_t *queue, pthread_t *tids, int count);
+static void request_shutdown(int signum);
+static stock_status_t install_shutdown_handlers(void);
 static void *worker_main(void *arg);
 static void handle_client(int connfd);
+static ssize_t stock_readline(rio_t *rio, char *buf, size_t maxlen);
+static ssize_t stock_writen(int fd, const void *buf, size_t n);
 
-/*
- * TODO(baseline-shutdown): wire this to a future shutdown path. This step only
- * adds the flag/pill structure needed to let workers exit when shutdown starts.
- */
 static volatile sig_atomic_t shutdown_requested = 0;
 
 /*
@@ -57,6 +57,9 @@ static stock_status_t run_server_stub_internal(const char *port)
     int listenfd;
     int connfd;
     int created;
+    socklen_t clientlen;
+    struct sockaddr_storage clientaddr;
+    char client_hostname[MAXLINE], client_port[MAXLINE];
     stock_status_t status;
     pthread_t tids[STOCK_WORKER_COUNT];
     conn_queue_t queue;
@@ -66,27 +69,53 @@ static stock_status_t run_server_stub_internal(const char *port)
         return status;
     }
 
-    created = 0;
-    status = create_workers(tids, &queue, &created);
+    listenfd = Open_listenfd((char *)port);
+    shutdown_requested = 0;
+    Signal(SIGPIPE, SIG_IGN);
+    status = install_shutdown_handlers();
     if (status != STOCK_OK) {
-        stop_workers(&queue, tids, created);
+        Close(listenfd);
         conn_queue_destroy(&queue);
         return status;
     }
 
-    listenfd = Open_listenfd((char *)port);
-    shutdown_requested = 0;
-    Signal(SIGPIPE, SIG_IGN);
+    created = 0;
+    status = create_workers(tids, &queue, &created);
+    if (status != STOCK_OK) {
+        stop_workers(&queue, tids, created);
+        Close(listenfd);
+        conn_queue_destroy(&queue);
+        return status;
+    }
 
     while (!shutdown_requested) {
-        connfd = Accept(listenfd, NULL, NULL);
+        /*
+         * Use raw accept() instead of CSAPP Accept() so EINTR can be handled
+         * directly and the graceful shutdown cleanup path can run.
+         */
+        clientlen = sizeof(struct sockaddr_storage);
+        connfd = accept(listenfd, (SA *)&clientaddr, &clientlen);
+        if (connfd < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            perror("accept");
+            status = STOCK_ERR_INTERNAL;
+            break;
+        }
+
+        if (getnameinfo((SA *)&clientaddr, clientlen, client_hostname, MAXLINE,
+                        client_port, MAXLINE,
+                        NI_NUMERICHOST | NI_NUMERICSERV) == 0) {
+            printf("Connected to (%s, %s)\n", client_hostname, client_port);
+        }
         conn_queue_insert(&queue, connfd);
     }
 
     stop_workers(&queue, tids, created);
     Close(listenfd);
     conn_queue_destroy(&queue);
-    return STOCK_OK;
+    return status;
 }
 
 /*
@@ -211,6 +240,38 @@ static void stop_workers(conn_queue_t *queue, pthread_t *tids, int count)
 }
 
 /*
+ * SIGINT/SIGTERM handler for graceful server shutdown.
+ */
+static void request_shutdown(int signum)
+{
+    shutdown_requested = 1;
+}
+
+/*
+ * Registers shutdown handlers without SA_RESTART so blocking accept() can
+ * return EINTR and the main thread can enter its cleanup path.
+ */
+static stock_status_t install_shutdown_handlers(void)
+{
+    struct sigaction action;
+
+    action.sa_handler = request_shutdown;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = 0;
+
+    if (sigaction(SIGINT, &action, NULL) < 0) {
+        fprintf(stderr, "sigaction SIGINT failed: %s\n", strerror(errno));
+        return STOCK_ERR_INTERNAL;
+    }
+    if (sigaction(SIGTERM, &action, NULL) < 0) {
+        fprintf(stderr, "sigaction SIGTERM failed: %s\n", strerror(errno));
+        return STOCK_ERR_INTERNAL;
+    }
+
+    return STOCK_OK;
+}
+
+/*
  * Worker loop: take one accepted client connection and serve it to completion.
  */
 static void *worker_main(void *arg)
@@ -231,7 +292,11 @@ static void *worker_main(void *arg)
 }
 
 /*
- * Handles one client connection until the client closes it.
+ * Handles one client connection until EOF or a per-client I/O error.
+ *
+ * Worker shutdown is controlled only by the queue poison pill. A client I/O
+ * failure ends this session, closes connfd, and lets the worker serve the next
+ * queued connection.
  *
  * TODO(baseline-protocol): parse show/buy/sell and send command-specific
  * responses.
@@ -245,12 +310,63 @@ static void handle_client(int connfd)
     char buf[MAXLINE];
     char response[] = "success\n";
 
-    Rio_readinitb(&rio, connfd);
-    while ((n = Rio_readlineb(&rio, buf, MAXLINE)) > 0) {
+    rio_readinitb(&rio, connfd);
+    while ((n = stock_readline(&rio, buf, MAXLINE)) > 0) {
         printf("request: %s", buf);
         fflush(stdout);
-        Rio_writen(connfd, response, strlen(response));
+        if (stock_writen(connfd, response, strlen(response)) < 0) {
+            break;
+        }
     }
 
-    Close(connfd);
+    if (n < 0) {
+        fprintf(stderr, "client read failed: %s\n", strerror(errno));
+    }
+    if (close(connfd) < 0) {
+        fprintf(stderr, "client close failed: %s\n", strerror(errno));
+    }
+}
+
+/*
+ * Avoid CSAPP's uppercase Rio_* wrappers in worker I/O: they call
+ * unix_error() on failure, which would terminate the whole thread-pool server
+ * for one broken client connection.
+ */
+static ssize_t stock_readline(rio_t *rio, char *buf, size_t maxlen)
+{
+    return rio_readlineb(rio, buf, maxlen);
+}
+
+/*
+ * Writes the full buffer unless the peer disconnects or another fd-local error
+ * occurs. EINTR is retried and partial writes advance through the buffer.
+ */
+static ssize_t stock_writen(int fd, const void *buf, size_t n)
+{
+    size_t nleft;
+    ssize_t nwritten;
+    const char *bufp;
+
+    nleft = n;
+    bufp = (const char *)buf;
+
+    while (nleft > 0) {
+        nwritten = write(fd, bufp, nleft);
+        if (nwritten < 0) {
+            if (errno == EINTR) {
+                continue;
+            }
+            fprintf(stderr, "client write failed: %s\n", strerror(errno));
+            return -1;
+        }
+        if (nwritten == 0) {
+            errno = EPIPE;
+            fprintf(stderr, "client write failed: %s\n", strerror(errno));
+            return -1;
+        }
+        nleft -= nwritten;
+        bufp += nwritten;
+    }
+
+    return (ssize_t)n;
 }

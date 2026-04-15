@@ -21,9 +21,9 @@ baseline은 다음 구조를 사용한다.
 - Main Thread
   - 클라이언트 연결 accept 담당
 - Worker Thread Pool
-  - 요청 처리 담당
+  - queue에서 connection을 꺼내 client 요청 처리 담당
 - Bounded Queue
-  - accept된 작업을 worker에게 전달
+  - accept된 `connfd`를 worker에게 전달
 - Global Stock Store
   - 현재 stock 상태를 저장하는 전역 상태 저장소
 - Global Mutex
@@ -96,7 +96,7 @@ baseline은 snapshot + append-only log 구조를 사용한다.
 2. 전역 상태 저장소 초기화
 3. append-only log replay
 4. 최신 상태 복원
-5. worker thread와 accept loop 시작
+5. listen socket 준비 후 worker thread와 accept loop 시작
 
 이 구조를 통해 마지막으로 성공 처리된 상태 변경까지 복구 가능하도록 한다.
 
@@ -147,4 +147,4 @@ baseline 단계에서는 다음을 의도적으로 제외한다.
 
 ## 9. 한 줄 정리
 
-이 baseline은 Main Thread가 연결을 받고, Worker Thread Pool이 요청을 처리하며, 전역 상태 저장소를 전역 mutex로 보호하고, 성공한 상태 변경은 append-only log에 기록한 뒤에만 성공 응답을 반환하며, 서버 재시작 시 snapshot과 log replay로 상태를 복구하는 구조다.
+이 baseline은 Main Thread가 연결을 받고, Worker Thread Pool이 connection 단위로 요청을 반복 처리하며, 전역 상태 저장소를 전역 mutex로 보호하고, 성공한 상태 변경은 append-only log에 기록한 뒤에만 성공 응답을 반환하며, 서버 재시작 시 snapshot과 log replay로 상태를 복구하는 구조다.
