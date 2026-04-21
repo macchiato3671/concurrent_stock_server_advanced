@@ -9,6 +9,8 @@
 
 static void usage(char **argv);
 
+static stock_store_t g_store;
+
 /*
  * Bootstraps the store, performs startup recovery, runs the server, and
  * materializes the final generation on clean shutdown.
@@ -20,7 +22,6 @@ int main(int argc, char **argv)
 {
     int stock_count;
     stock_status_t status;
-    stock_store_t g_store;
 
     if (argc != 2) {
         usage(argv);
@@ -51,7 +52,7 @@ int main(int argc, char **argv)
 
     printf("stock store ready: %d items loaded\n", stock_count);
 
-    status = run_server_stub(argv[1]);
+    status = run_server_stub(argv[1], &g_store);
     if (status != STOCK_OK) {
         stock_store_destroy(&g_store);
         return 1;
